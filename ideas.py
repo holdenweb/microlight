@@ -9,6 +9,14 @@ The lighting is a prototype light channel controller, which should probably be a
 how to interact with the Ticker (if it needs to).
 
 """
+
+# establish hardware control
+from machine import Timer
+tim0 = Timer(0, mode=Timer.PWM)
+ch = tim0.channel(Timer.A, freq=500, polarity=Timer.POSITIVE, duty_cycle=10.00)
+mstimer = Timer(1, mode=Timer.PERIODIC, width=16)
+ticker = mstimer.channel(Timer.A, freq=100)
+
 class Ticker:
     def __init__(self):
         self.tasks = set()
@@ -44,15 +52,10 @@ class Lighting:
         for i in range(self.interval):
             self.tick_num += 1
             self.current = self.start+((self.target-self.start)*self.tick_num)//self.interval
-            print("[][][]", self.name, "==>", self.current)
+            ch.duty_cycle(self.current)
             return self.current == self.target
 
 lg1 = Lighting("one")
-lg2 = Lighting("two")
-lg3 = Lighting("three")
-lg1.fadeto(500, interval=30)
-lg2.fadeto(5000)
-lg3.fadeto(1000, interval=10)
+lg1.fadeto(5000, interval=300)
 
-while scheduler.tasks:
-    scheduler.tick()
+ticker.irq(handler=scheduler.tick, trigger=Timer.TIMEOUT)
