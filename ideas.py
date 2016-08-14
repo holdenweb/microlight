@@ -9,6 +9,13 @@ The lighting is a prototype light channel controller, which should probably be a
 how to interact with the Ticker (if it needs to).
 
 """
+import micropython
+micropython.alloc_emergency_exception_buf(100)
+from machine import Timer
+
+run_int = 0
+tasks = set()
+
 class Ticker:
     def __init__(self, ticker):
         print("About to start handling tick timer")
@@ -21,21 +28,23 @@ class Ticker:
         self.tasks.remove(task)
     def tick(self, peripheral): # This gets scheduled once every ten milliseconds
         """Look carefully - uses heap, should maybe find another technique"""
-        self.time += 1
-        done = set()
-        for task in self.tasks:
-            if task.tick_handler():
-                done.add(task)
-        for task in done:
-            self.remove(task)
-        self.irq.enable()
-        # Do we need to re-enable this IRQ?
-        # Should I therefore have a method to create the
-        # IRQ and store it as an instance attribute.
+        global run_int
+        run_int = 1      
+
+def tick(scheduler):
+    print("@", end="")
+    done = set()
+    for task in scheduler.tasks:
+        if task.tick_handler():
+            done.add(task)
+    for task in done:
+        scheduler.remove(task)
+# Do we need to re-enable this IRQ?
+# Should I therefore have a method to create the
+# IRQ and store it as an instance attribute.
 
 print("Scheduler declared")
 print("About to establish hardware control")
-from machine import Timer
 tim0 = Timer(0, mode=Timer.PWM)
 ch = tim0.channel(Timer.A, freq=500, polarity=Timer.POSITIVE, duty_cycle=100)
 mstimer = Timer(1, mode=Timer.PERIODIC, width=16)
@@ -63,8 +72,12 @@ class Lighting:
 
 lg1 = Lighting("one")
 lg1.fadeto(10000, interval=1000)
-for i in range(25):
-    print("About to sssssleep")
-import time
-time.sleep(5)
-print("Woke up")
+for i in range(100):
+    print(run_int)
+print()
+
+#while True:
+    #while not run_int:
+        #pass
+    #tick(scheduler)
+    #run_int = 0
