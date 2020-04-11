@@ -7,5 +7,6 @@ modulated DC current at a frequency that makes the flicker imperceptible.
 Annoyingly the internal chip has an unused enable input that remains
 inaccessible, so similar circuitry has to be duplicated externally.
 
-
+I chose the PyBoard primarily because of the resolution of the DAC
+outputs. This may have been an irrational decision. 
 
