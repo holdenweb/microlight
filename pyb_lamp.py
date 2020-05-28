@@ -30,8 +30,6 @@ tim = Timer(2, freq=1000)
 pwm_ch = tim.channel(3, Timer.PWM, pin=pwm_pin)
 pwm_ch.pulse_width_percent(0)
 
-val_old = r.value()
-
 #
 # While it would be possible to store the settings in non-volatile
 # memory, at present we simply start from zero every time power is
@@ -39,7 +37,7 @@ val_old = r.value()
 # the lamp is switched off, and when switched on again will fade
 # up to the last-asserted setting.
 #
-val_old = current = pct = 0   # Always fade up at power on
+current = pct = 0   # Always fade up at power on
 target = 5
 r.set(value=target)
 running = True
