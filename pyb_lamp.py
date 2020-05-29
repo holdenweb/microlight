@@ -1,35 +1,11 @@
 # The MIT License (MIT)
 # Copyright (c) 2020 Mike Teachman
 # https://opensource.org/licenses/MIT
-
+#
 # example for MicroPython rotary encoder
 #
-# Documentation:
+# Rotary Encoder Documentation:x
 #   https://github.com/MikeTeachman/micropython-rotary
-
-import utime
-from pyb import Pin, Timer
-from rotary_irq_pyb import RotaryIRQ
-
-ticks_per_click = 8  # Scaling factor
-inter_tick_delay_ms = 10
-max_setting = 30
-max_demand = max_setting*ticks_per_click
-max_drive = max_demand*max_demand
-
-r = RotaryIRQ(pin_num_clk='X1',
-              pin_num_dt='X2',
-              min_val=0,
-              max_val=max_setting,
-              reverse=True,
-              range_mode=RotaryIRQ.RANGE_BOUNDED)
-
-switch_pin = Pin('X4', mode=Pin.IN, pull=Pin.PULL_UP)
-pwm_pin = Pin('X3') # X3 has TIM2, CH3 on PyBoard
-tim = Timer(2, freq=1000)
-pwm_ch = tim.channel(3, Timer.PWM, pin=pwm_pin)
-pwm_ch.pulse_width_percent(0)
-
 #
 # While it would be possible to store the settings in non-volatile
 # memory, at present we simply start from zero every time power is
@@ -37,30 +13,73 @@ pwm_ch.pulse_width_percent(0)
 # the lamp is switched off, and when switched on again will fade
 # up to the last-asserted setting.
 #
-current = pct = 0   # Always fade up at power on
-target = 5
-r.set(value=target)
-running = True
-on_off_count = 0
+import utime
+from pyb import Pin, Timer
+from rotary_irq_pyb import RotaryIRQ
+
+TICKS_PER_CLICK = 8  # Scaling factor
+INTER_TICK_MS = 10
+MAX_SETTING = 30
+MAX_DEMAND = MAX_SETTING * TICKS_PER_CLICK
+MAX_DRIVE = MAX_DEMAND * MAX_DEMAND
+INITIAL_TARGET = 5
+
+
+class DimmedLight:
+    def __init__(
+        self,
+        clk_pin='X1',
+        dt_pin='X2',
+        switch_pin='X4',
+        pwm_pin='X3',
+        timer=2,
+        channel=3,
+    ):
+        self.switch_pin = Pin(switch_pin, mode=Pin.IN, pull=Pin.PULL_UP)
+        self.pwm_pin = Pin(pwm_pin)  # X3 has TIM2, CH3 on PyBoard
+        self.tim = Timer(2, freq=1000)
+        self.pwm_ch = self.tim.channel(3, Timer.PWM, pin=self.pwm_pin)
+        self.pwm_ch.pulse_width_percent(0)
+
+        self.on_off_count = self.current = 0  # Always fade up at power on
+        self.target = INITIAL_TARGET
+        self.running = True
+        self.incr = 1
+        self.r = RotaryIRQ(
+            clk_pin,
+            dt_pin,
+            max_val=MAX_SETTING,
+            reverse=True,
+            range_mode=RotaryIRQ.RANGE_BOUNDED,
+        )
+        self.r.set(value=self.target)
+
+    def tick(self):
+        if not self.switch_pin.value():
+            self.on_off_count += 1
+            if self.on_off_count == 3:
+                self.running = not self.running
+                if not self.running:
+                    self.current, self.incr = 0, 1
+                    self.pwm_ch.pulse_width_percent(0)
+        else:
+            self.on_off_count = 0
+
+        if self.running:
+            raw_demand = self.r.value() * TICKS_PER_CLICK
+            if raw_demand != self.target:  # retargeting required
+                self.target = raw_demand
+                self.incr = 1 if self.target > self.current else -1
+            if self.current != self.target:  # Move towards target
+                self.current += self.incr
+                pct = (self.current * self.current / MAX_DRIVE) * 100
+                self.pwm_ch.pulse_width_percent(pct)
+
+
+c1 = DimmedLight(
+    clk_pin='X1', dt_pin='X2', switch_pin='X4', pwm_pin='X3', timer=2, channel=3
+)
 
 while True:
-    utime.sleep_ms(inter_tick_delay_ms)
-    if not switch_pin.value():
-        on_off_count += 1
-        if on_off_count == 3:
-            running = not running
-            if not running:
-                current, incr = 0, 1
-                pwm_ch.pulse_width_percent(0)
-    else:
-        on_off_count = 0
-
-    if running:
-        raw_demand = r.value()*ticks_per_click
-        if raw_demand != target:  # retargeting required
-            target = raw_demand
-            incr = 1 if target > current else -1
-        if current != target:  # Move towards target
-            current += incr
-            pct = (current*current/max_drive)*100
-            pwm_ch.pulse_width_percent(pct)
+    utime.sleep_ms(INTER_TICK_MS)
+    c1.tick()
