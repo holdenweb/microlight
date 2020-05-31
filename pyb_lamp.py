@@ -21,7 +21,7 @@ MAX_SETTING = 30
 MAX_DEMAND = MAX_SETTING * TICKS_PER_CLICK
 MAX_DRIVE = MAX_DEMAND * MAX_DEMAND
 INITIAL_TARGET = 5
-
+DEBOUNCE_TICKS = 3
 
 class DimmedLight:
     """
@@ -75,9 +75,9 @@ class DimmedLight:
         """
         if not self.switch_pin.value():
             self.on_off_count += 1
-            # After three tick cycles, action a press on the switch.
-            # Otherwise just count uselessly until the switch is opened.
-            if self.on_off_count == 3:
+            # After DEBOUNCE_TICKS tick cycles, action a press on the switch.
+            # Otherwise just count uselessly until the switch is re-opened.
+            if self.on_off_count == DEBOUNCE_TICKS:
                 self.running = not self.running
                 if not self.running:
                     self.current, self.incr = 0, 1
