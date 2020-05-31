@@ -3,13 +3,14 @@
 #
 import utime
 
-from pyb_lamp import DimmedLight, INTER_TICK_MS
+from pyb_lamp import DimmedLight
+from pyb_lamp import INTER_TICK_MS
 
 c1 = DimmedLight(
-    clk_pin='X1', dt_pin='X2', switch_pin='X4', pwm_pin='X3', timer=2, channel=3
+    clk_pin="X1", dt_pin="X2", switch_pin="X4", pwm_pin="X3", timer=2, channel=3
 )
 c2 = DimmedLight(
-    clk_pin='X5', dt_pin='X6', switch_pin='X8', pwm_pin='X7', timer=13, channel=1
+    clk_pin="X5", dt_pin="X6", switch_pin="X8", pwm_pin="X7", timer=13, channel=1
 )
 
 while True:

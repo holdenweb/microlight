@@ -12,7 +12,8 @@
 # the press switch is closed for three ticks in a row the lamp is switched
 # off, and when switched on again will fade up to the last-asserted setting.
 #
-from pyb import Pin, Timer
+from pyb import Pin
+from pyb import Timer
 from rotary_irq_pyb import RotaryIRQ
 
 TICKS_PER_CLICK = 8  # Scaling factor
@@ -22,6 +23,7 @@ MAX_DEMAND = MAX_SETTING * TICKS_PER_CLICK
 MAX_DRIVE = MAX_DEMAND * MAX_DEMAND
 INITIAL_TARGET = 5
 DEBOUNCE_TICKS = 3
+
 
 class DimmedLight:
     """
@@ -33,14 +35,15 @@ class DimmedLight:
     input provides on/off control for the channel. These control the PWM
     output at the pwm_pin driven by a timer channel created for the purpose.
     """
+
     def __init__(
         self,
-        clk_pin='X1',
-        dt_pin='X2',
-        switch_pin='X4',
-        pwm_pin='X3',
+        clk_pin="X1",
+        dt_pin="X2",
+        switch_pin="X4",
+        pwm_pin="X3",
         timer=2,
-        channel=3
+        channel=3,
     ):
         """
         Establish pin functions, create rotary control and initialise tick
@@ -70,7 +73,7 @@ class DimmedLight:
         three times in a row.
 
         This routine should be called periodically for each lamp in the bank.
-        The calls should be relatively regular, as each tick triggers an
+        The calls should be relatively frequent and regular, as each tick triggers an
         increment in the lamp brightness while proceeding towards a new target.
         """
         if not self.switch_pin.value():
