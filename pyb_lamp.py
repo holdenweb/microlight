@@ -7,11 +7,10 @@
 # Thanks to Mike Teachman for an exemplary rotary encoder driver.
 #   https://github.com/MikeTeachman/micropython-rotary
 #
-# While it would be possible to store the settings in non-volatile
-# memory, at present we simply start from zero every time power is
-# applied. If the press switch is closed for three ticks in a row
-# the lamp is switched off, and when switched on again will fade
-# up to the last-asserted setting.
+# While it would be possible to store settings in non-volatile memory, at
+# present we simply start from a fixed value every time power is applied. If
+# the press switch is closed for three ticks in a row the lamp is switched
+# off, and when switched on again will fade up to the last-asserted setting.
 #
 from pyb import Pin, Timer
 from rotary_irq_pyb import RotaryIRQ
@@ -29,9 +28,9 @@ class DimmedLight:
     Controls a PWM output using three input pins connected to a rotary
     encoder.
 
-    The three inputs clk_pin, dt_pin and switch_pin are used to create the
-    RotaryIRQ object that provides both an integer value for the intensity
-    setting and on/off control for the channel. These control the PWM
+    The clk_pin and dt_pin inputs are used to create the RotaryIRQ object
+    that provides an integer value for the intensity setting. The switch_pin
+    input provides on/off control for the channel. These control the PWM
     output at the pwm_pin driven by a timer channel created for the purpose.
     """
     def __init__(
@@ -71,12 +70,13 @@ class DimmedLight:
         three times in a row.
 
         This routine should be called periodically for each lamp in the bank.
+        The calls should be relatively regular, as each tick triggers an
+        increment in the lamp brightness while proceeding towards a new target.
         """
         if not self.switch_pin.value():
             self.on_off_count += 1
-            # If the user has pressed the switch
-            # for exactly three tick cycles,
-            # action the press
+            # After three tick cycles, action a press on the switch.
+            # Otherwise just count uselessly until the switch is opened.
             if self.on_off_count == 3:
                 self.running = not self.running
                 if not self.running:
@@ -91,7 +91,7 @@ class DimmedLight:
             if demand != self.target:
                 self.target = demand
                 self.incr = 1 if self.target > self.current else -1
-            # Move towards target
+            # Move towards target unless already there
             if self.current != self.target:
                 self.current += self.incr
                 pct = (self.current * self.current / MAX_DRIVE) * 100
