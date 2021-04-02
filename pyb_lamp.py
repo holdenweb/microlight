@@ -70,7 +70,7 @@ class DimmedLight:
     def tick(self):
         """
         Debounce switch pin, actioning when the switch is pressed (zero)
-        three times in a row.
+        three ticks in a row.
 
         This routine should be called periodically for each lamp in the bank.
         The calls should be relatively frequent and regular, as each tick triggers an
@@ -78,11 +78,12 @@ class DimmedLight:
         """
         if not self.switch_pin.value():
             self.on_off_count += 1
-            # After DEBOUNCE_TICKS tick cycles, action a press on the switch.
+            # After DEBOUNCE_TICKS cycles, action a press on the switch.
             # Otherwise just count uselessly until the switch is re-opened.
             if self.on_off_count == DEBOUNCE_TICKS:
                 self.running = not self.running
                 if not self.running:
+                    print("Suspending", self.pwm_pin)
                     self.current, self.incr = 0, 1
                     self.pwm_ch.pulse_width_percent(0)
         else:
@@ -92,6 +93,7 @@ class DimmedLight:
             demand = self.r.value() * TICKS_PER_CLICK
             # retargeting required ?
             if demand != self.target:
+                print("New target:", demand)
                 self.target = demand
                 self.incr = 1 if self.target > self.current else -1
             # Move towards target unless already there
